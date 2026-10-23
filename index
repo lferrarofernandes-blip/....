@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Conserto da Conversa</title>
+<style>
+*, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+:root {
+  --bg:#f2ece6; --paper:#fffaf5; --ink:#2a1c12; --ink2:#4a3626;
+  --muted:#8a7a68; --line:#e0d4c4;
+  --terra:#c0562a; --terra-l:#fceee6; --terra-m:#e0a07c;
+  --verde:#3d7a4a; --verde-l:#e8f5ea; --verde-m:#8cc89a;
+  --vinho:#8a2838; --vinho-l:#fdeef0; --vinho-m:#d48c98;
+  --amarelo:#9a7010; --amarelo-l:#fdf6e0; --amarelo-m:#d4b44c;
+  --azul:#1e5a7a; --azul-l:#e6f2f8; --azul-m:#7ab4d0;
+}
+body { font-family:'Segoe UI',system-ui,sans-serif; background:var(--bg); color:var(--ink); min-height:100vh; font-size:15px; line-height:1.6; }
+.topbar { background:var(--ink); padding:12px 22px; display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap; position:sticky; top:0; z-index:100; border-bottom:3px solid var(--terra); }
+.top-title { font-size:17px; font-weight:700; color:#fff; }
+.top-sub { font-size:11px; color:rgba(255,255,255,.45); font-weight:500; }
+.score-pill { background:rgba(255,255,255,.1); border:1.5px solid rgba(255,255,255,.2); border-radius:20px; padding:5px 14px; font-size:13px; font-weight:700; color:var(--terra-m); }
+.tab-row { display:flex; gap:4px; flex-wrap:wrap; padding:8px 22px 0; background:var(--ink); border-bottom:3px solid var(--terra); overflow-x:auto; }
+.ttab { background:transparent; border:1.5px solid rgba(255,255,255,.18); color:rgba(255,255,255,.55); font-size:12px; font-weight:600; padding:6px 12px; border-radius:6px 6px 0 0; cursor:pointer; white-space:nowrap; margin-bottom:-3px; border-bottom-color:transparent; flex-shrink:0; }
+.ttab:hover { color:#fff; border-color:rgba(255,255,255,.4); }
+.ttab.active { background:var(--paper); border-color:var(--terra); border-bottom-color:var(--paper); color:var(--terra); }
+.screen { display:none; }
+.screen.active { display:block; animation:up .25s ease; }
+@keyframes up { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:none} }
+.main { max-width:760px; margin:0 auto; padding:28px 20px 80px; }
+.page-hdr { margin-bottom:22px; padding-bottom:16px; border-bottom:1.5px solid var(--line); }
+.eyebrow { font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--terra); margin-bottom:6px; display:flex; align-items:center; gap:8px; }
+.eyebrow::after { content:''; flex:1; height:1px; background:var(--terra-m); opacity:.5; }
+.page-title { font-size:26px; font-weight:800; line-height:1.2; margin-bottom:7px; }
+.page-desc { font-size:14px; color:var(--muted); line-height:1.65; max-width:540px; }
+.prog-wrap { margin-bottom:18px; }
+.prog-track { height:6px; background:var(--line); border-radius:6px; overflow:hidden; margin-bottom:5px; }
+.prog-fill { height:100%; background:var(--terra); border-radius:6px; transition:width .5s ease; }
+.prog-label { font-size:11px; color:var(--muted); font-weight:600; }
+.cena { background:var(--paper); border:1.5px solid var(--line); border-radius:16px; overflow:hidden; margin-bottom:18px; box-shadow:0 2px 12px rgba(0,0,0,.06); }
+.cena-hdr { background:var(--terra); padding:11px 16px; font-size:12px; font-weight:700; color:rgba(255,255,255,.9); font-style:italic; }
+.cena-hdr strong { color:#fff; font-style:normal; }
+.cena-body { padding:16px; display:flex; flex-direction:column; gap:10px; }
+.fala { background:#f3ece2; border-radius:14px; border-bottom-left-radius:4px; padding:10px 14px; font-size:14px; font-weight:500; color:var(--ink2); max-width:85%; }
+.fala.minha { background:#f8e2d8; border-bottom-right-radius:4px; border-bottom-left-radius:14px; align-self:flex-end; }
+.quem { font-size:11px; font-weight:700; color:var(--muted); padding:0 4px; }
+.obs { font-size:11.5px; font-style:italic; color:var(--muted); padding:0 4px; }
+.erro-flag { background:var(--vinho-l); border:1.5px solid var(--vinho-m); border-radius:10px; padding:9px 13px; font-size:13px; font-weight:700; color:var(--vinho); }
+.analysis { background:var(--paper); border:1.5px solid var(--line); border-radius:14px; padding:18px 20px; margin-bottom:16px; }
+.analysis-title { font-size:14px; font-weight:800; margin-bottom:12px; }
+.pergunta-box { background:var(--azul-l); border:1.5px solid var(--azul-m); border-radius:12px; padding:12px 15px; margin-bottom:12px; font-size:13.5px; font-weight:700; color:var(--azul); line-height:1.55; }
+.opcoes { display:flex; flex-direction:column; gap:7px; margin-bottom:12px; }
+.opcao { background:#fff; border:1.5px solid var(--line); border-radius:10px; padding:10px 14px; cursor:pointer; font-size:13.5px; font-weight:600; color:var(--ink2); transition:all .15s; display:flex; align-items:flex-start; gap:10px; text-align:left; font-family:inherit; line-height:1.5; }
+.opcao:hover:not(:disabled) { border-color:var(--terra); background:var(--terra-l); color:var(--terra); }
+.opcao:disabled { cursor:default; }
+.opcao.correta, .opcao.revelada { background:var(--verde-l); border-color:var(--verde); color:var(--verde); }
+.opcao.errada { background:var(--vinho-l); border-color:var(--vinho); color:var(--vinho); }
+.opc-ltr { width:24px; height:24px; border-radius:50%; background:var(--bg); border:1.5px solid var(--line); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:800; color:var(--muted); flex-shrink:0; }
+.fb { border-radius:10px; padding:11px 14px; margin-bottom:12px; font-size:13px; font-weight:600; line-height:1.6; display:none; }
+.fb.show { display:block; animation:up .2s ease; }
+.fb-c { background:var(--verde-l); border:1.5px solid var(--verde-m); color:#1e5a2a; }
+.fb-w { background:var(--vinho-l); border:1.5px solid var(--vinho-m); color:#5a1e24; }
+.nota { width:100%; border:1.5px solid var(--line); border-radius:10px; padding:10px 13px; font-family:inherit; font-size:14px; color:var(--ink); background:var(--bg); resize:vertical; min-height:52px; outline:none; line-height:1.55; }
+.nota:focus { border-color:var(--terra); background:#fff; }
+.nota::placeholder { color:#c4b8a8; font-style:italic; }
+.nota-label { font-size:11px; font-weight:700; letter-spacing:.07em; text-transform:uppercase; color:var(--muted); margin:10px 0 5px; }
+.btn { font-family:inherit; font-size:14px; font-weight:700; padding:10px 22px; border-radius:10px; border:2px solid; cursor:pointer; transition:all .15s; }
+.btn:hover { transform:translateY(-1px); }
+.btn-terra { background:var(--terra); border-color:var(--terra); color:#fff; }
+.btn-out { background:transparent; border-color:var(--line); color:var(--muted); }
+.btn-out:hover { border-color:var(--ink); color:var(--ink); }
+.btn-row { display:flex; gap:10px; flex-wrap:wrap; margin-top:14px; }
+.gab { background:var(--verde-l); border:1.5px solid var(--verde-m); border-radius:12px; padding:14px 16px; margin-top:12px; display:none; }
+.gab.show { display:block; animation:up .25s ease; }
+.gab-title { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.09em; color:var(--verde); margin-bottom:8px; }
+.gab-body { font-size:13.5px; color:#1e5a2a; line-height:1.7; }
+.gab-body strong { color:var(--verde); }
+.inst { background:var(--terra-l); border:1.5px solid var(--terra-m); border-radius:12px; padding:13px 16px; margin-bottom:16px; font-size:13.5px; color:var(--terra); font-weight:600; line-height:1.6; }
+.ferramenta { background:var(--amarelo-l); border:1.5px solid var(--amarelo-m); border-radius:12px; padding:14px 16px; margin-bottom:14px; }
+.ferr-nome { font-size:13px; font-weight:800; color:var(--amarelo); margin-bottom:4px; }
+.ferr-txt { font-size:13.5px; color:#5a4408; line-height:1.6; }
+.result-box { background:var(--paper); border:1.5px solid var(--line); border-radius:16px; padding:28px 24px; text-align:center; margin-bottom:18px; }
+.result-title { font-size:28px; font-weight:800; margin-bottom:6px; }
+.result-sub { font-size:14px; color:var(--muted); margin-bottom:22px; line-height:1.6; }
+.result-num { font-size:30px; font-weight:800; color:var(--terra); }
+.result-lbl { font-size:12px; color:var(--muted); font-weight:600; margin-top:2px; }
+.timer { position:fixed; bottom:20px; right:20px; background:var(--ink); border:2px solid var(--terra); border-radius:12px; padding:10px 14px; text-align:center; min-width:80px; z-index:200; }
+.timer-val { font-size:20px; font-weight:800; color:#fff; letter-spacing:.05em; }
+.timer-lbl { font-size:9px; color:rgba(255,255,255,.4); text-transform:uppercase; letter-spacing:.07em; margin-bottom:4px; }
+.timer-btns { display:flex; gap:4px; margin-top:6px; }
+.tbtn { flex:1; padding:4px; border-radius:6px; border:none; font-size:10px; font-weight:700; cursor:pointer; }
+.tbtn-go { background:var(--terra); color:#fff; }
+.tbtn-rst { background:rgba(255,255,255,.1); color:rgba(255,255,255,.6); }
+</style>
+</head>
+<body>
+
+<div class="timer">
+  <div class="timer-lbl">Sessão</div>
+  <div class="timer-val" id="timerVal">00:00</div>
+  <div class="timer-btns">
+    <button class="tbtn tbtn-go" id="timerBtn" onclick="toggleTimer()">Iniciar</button>
+    <button class="tbtn tbtn-rst" onclick="resetTimer()">Zerar</button>
+  </div>
+</div>
+
+<nav class="topbar">
+  <div>
+    <div class="top-title">Conserto da Conversa</div>
+    <div class="top-sub">Agora que você percebe as pistas, o que fazer com elas?</div>
+  </div>
+  <div class="score-pill" id="scoreDisplay">0 pontos</div>
+</nav>
+<div class="tab-row">
+  <button class="ttab active" onclick="go('inicio')">Início</button>
+  <button class="ttab" onclick="go('b1')">Bloco 1</button>
+  <button class="ttab" onclick="go('b2')">Bloco 2</button>
+  <button class="ttab" onclick="go('b3')">Bloco 3</button>
+  <button class="ttab" onclick="go('b4')">Bloco 4</button>
+  <button class="ttab" onclick="go('fim')">Resultado</button>
+</div>
+
+<!-- INÍCIO -->
+<div class="screen active" id="s-inicio">
+  <div class="main">
+    <div class="page-hdr">
+      <div class="eyebrow">Novo desafio</div>
+      <div class="page-title">Conserto da Conversa</div>
+      <div class="page-desc">Você já virou detetive: percebe quando alguém diz uma coisa e sente outra. Agora vem a parte mais difícil e mais útil: o que fazer depois de perceber.</div>
+    </div>
+    <div class="inst">Perceber a pista é metade do caminho. A outra metade é saber o que falar: às vezes é perguntar, às vezes é pedir desculpas, às vezes é só ficar perto sem resolver nada.</div>
+    <div class="ferramenta">
+      <div class="ferr-nome">Ferramenta 1: a pergunta de checagem</div>
+      <div class="ferr-txt">Em vez de adivinhar o que a pessoa sente e ficar remoendo, você pergunta. "Você quis dizer que...?", "Senti que você ficou chateada, foi isso mesmo?" Perguntar custa dez segundos. Adivinhar errado custa dias.</div>
+    </div>
+    <div class="ferramenta">
+      <div class="ferr-nome">Ferramenta 2: o conserto</div>
+      <div class="ferr-txt">Quando VOCÊ é quem errou, existe um jeito de consertar: reconhecer o que fez, sem desculpa esfarrapada e sem se humilhar. "Você tem razão, eu fiz isso. Me desculpa."</div>
+    </div>
+    <div class="ferramenta">
+      <div class="ferr-nome">Ferramenta 3: ficar perto sem consertar</div>
+      <div class="ferr-txt">Nem tudo tem conserto na hora. Às vezes a pessoa só quer ser ouvida. Dar conselho rápido demais parece pressa de encerrar o assunto.</div>
+    </div>
+    <div class="btn-row"><button class="btn btn-terra" onclick="go('b1')">Começar</button></div>
+  </div>
+</div>
+
+<!-- BLOCO 1 -->
+<div class="screen" id="s-b1">
+  <div class="main">
+    <div class="page-hdr">
+      <div class="eyebrow">Bloco 1 de 4</div>
+      <div class="page-title">Perguntar em vez de adivinhar</div>
+      <div class="page-desc">Em cada cena você percebeu uma pista. Qual é a melhor pergunta de checagem?</div>
+    </div>
+    <div class="prog-wrap"><div class="prog-track"><div class="prog-fill" style="width:25%"></div></div><div class="prog-label">Bloco 1 de 4</div></div>
+    <div id="bloco1"></div>
+    <div class="btn-row"><button class="btn btn-terra" onclick="go('b2')">Próximo bloco</button></div>
+  </div>
+</div>
+
+<!-- BLOCO 2 -->
+<div class="screen" id="s-b2">
+  <div class="main">
+    <div class="page-hdr">
+      <div class="eyebrow">Bloco 2 de 4</div>
+      <div class="page-title">Quando quem errou foi você</div>
+      <div class="page-desc">Aqui o erro é seu. Qual conserto funciona de verdade?</div>
+    </div>
+    <div class="prog-wrap"><div class="prog-track"><div class="prog-fill" style="width:50%"></div></div><div class="prog-label">Bloco 2 de 4</div></div>
+    <div class="inst">Atenção: um conserto bom reconhece o que aconteceu. Não serve nem minimizar ("foi brincadeira") nem exagerar ("eu sou a pior pessoa do mundo").</div>
+    <div id="bloco2"></div>
+    <div class="btn-row"><button class="btn btn-terra" onclick="go('b3')">Próximo bloco</button></div>
+  </div>
+</div>
+
+<!-- BLOCO 3 -->
+<div class="screen" id="s-b3">
+  <div class="main">
+    <div class="page-hdr">
+      <div class="eyebrow">Bloco 3 de 4</div>
+      <div class="page-title">Consertar, ouvir ou deixar quieto?</div>
+      <div class="page-desc">Nem toda situação pede a mesma coisa. Escolha o que cabe em cada uma.</div>
+    </div>
+    <div class="prog-wrap"><div class="prog-track"><div class="prog-fill" style="width:75%"></div></div><div class="prog-label">Bloco 3 de 4</div></div>
+    <div id="bloco3"></div>
+    <div class="btn-row"><button class="btn btn-terra" onclick="go('b4')">Próximo bloco</button></div>
+  </div>
+</div>
+
+<!-- BLOCO 4 -->
+<div class="screen" id="s-b4">
+  <div class="main">
+    <div class="page-hdr">
+      <div class="eyebrow">Bloco 4 de 4</div>
+      <div class="page-title">Escreva o conserto</div>
+      <div class="page-desc">Agora sem alternativas. Leia a cena e escreva com suas palavras o que você diria.</div>
+    </div>
+    <div class="prog-wrap"><div class="prog-track"><div class="prog-fill" style="width:100%"></div></div><div class="prog-label">Último bloco!</div></div>
+    <div class="inst">Dica: use as três ferramentas do início. Perguntar, consertar ou só ficar perto. Depois de escrever, fale em voz alta com o tom que combina.</div>
+    <div id="bloco4"></div>
+    <div class="btn-row"><button class="btn btn-terra" onclick="go('fim')">Ver resultado</button></div>
+  </div>
+</div>
+
+<!-- FIM -->
+<div class="screen" id="s-fim">
+  <div class="main">
+    <div class="page-hdr"><div class="eyebrow">Resultado</div><div class="page-title">Você terminou!</div></div>
+    <div class="result-box">
+      <div class="result-title">Consertadora de conversas</div>
+      <div class="result-sub">Perceber a pista já é difícil. Saber o que falar depois é o que transforma a percepção em amizade de verdade.</div>
+      <div class="result-num" id="ptsFinal">0</div>
+      <div class="result-lbl">pontos conquistados</div>
+    </div>
+    <div style="background:var(--paper);border:1.5px solid var(--line);border-radius:14px;padding:18px 20px">
+      <div style="font-size:14px;font-weight:800;margin-bottom:12px">O que você leva de hoje</div>
+      <div style="font-size:13.5px;color:var(--ink2);line-height:1.9">
+        Perguntar custa dez segundos, adivinhar errado custa dias<br>
+        Conserto bom reconhece o erro sem se humilhar<br>
+        "Foi brincadeira" não é pedido de desculpas<br>
+        Quem está chorando quer colo antes de conselho<br>
+        Às vezes a melhor resposta é esperar<br>
+        Dá para discordar sem brigar e sem engolir
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const TABS=['inicio','b1','b2','b3','b4','fim'];
+function go(id){
+  TABS.forEach(t=>document.getElementById('s-'+t).classList.remove('active'));
+  document.getElementById('s-'+id).classList.add('active');
+  document.querySelectorAll('.ttab').forEach((b,i)=>b.classList.toggle('active',TABS[i]===id));
+  window.scrollTo({top:0,behavior:'smooth'});
+  if(id==='fim') document.getElementById('ptsFinal').textContent=score;
+}
+let score=0;
+function addScore(n){ score+=n; document.getElementById('scoreDisplay').textContent=score+' pontos'; }
+function esc(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function shuffle(a){ return [...a].sort(()=>Math.random()-.5); }
+
+const B1=[
+ {ctx:'Você mandou um áudio longo contando uma novidade. Sua amiga respondeu só "que legal" e mudou de assunto.',
+  falas:[{q:'Você',t:'[áudio de 3 minutos] ...e aí eu consegui a vaga!',m:true},{q:'Amiga',t:'que legal. ah, você viu a prova de amanhã?',o:'Ela costuma responder com áudio também'}],
+  ops:['Ignorar e seguir falando da prova','"Senti que você respondeu meio corrido. Tá tudo bem contigo?"','"Nossa, que animação hein. Valeu pelo apoio."'],
+  c:1, fb:'Essa pergunta nomeia a pista sem acusar. Abre espaço para ela contar se está acontecendo algo, e não fecha a porta como a resposta irônica faria.'},
+ {ctx:'Seu pai disse que podia te levar no shopping, mas suspirou e olhou o relógio duas vezes enquanto falava.',
+  falas:[{q:'Pai',t:'Posso te levar sim, vamos.',o:'Suspirou e olhou o relógio duas vezes'}],
+  ops:['"Pai, você parece cansado. Prefere a gente ir amanhã?"','"Você disse que podia, então vamos."','Não falar nada e ir mesmo assim'],
+  c:0, fb:'Você percebeu a pista e ofereceu uma saída sem acusar ninguém. Isso é checagem com cuidado: nem engolir, nem cobrar.'},
+ {ctx:'Sua amiga disse que vocês "deviam se falar mais", sorrindo. Você não entendeu se foi cobrança ou saudade.',
+  falas:[{q:'Amiga',t:'A gente devia se falar mais, né?',o:'Disse sorrindo, mas desviou o olhar'}],
+  ops:['"É, a gente devia mesmo." e mudar de assunto','"Desculpa, eu sei que sumi, foi mal mesmo"','"Você sentiu minha falta ou ficou chateada comigo? Quero entender"'],
+  c:2, fb:'Quando a mesma frase pode ser duas coisas, perguntar é melhor que escolher uma no escuro. E pedir desculpas antes de saber se houve mágoa pode criar um problema que não existia.'},
+ {ctx:'No grupo, você fez uma piada e a Lívia parou de responder. As outras continuaram conversando.',
+  falas:[{q:'Você',t:'kkkk a Lívia é a rainha de chegar atrasada',m:true},{q:'Lívia',t:'',o:'Visualizou e não respondeu mais nada no grupo'}],
+  ops:['Perguntar no privado: "Lívia, minha piada foi chata? Me fala, eu apago"','Mandar outra piada no grupo para quebrar o clima','Esperar ela falar primeiro'],
+  c:0, fb:'Chamar no privado protege a pessoa de ser exposta de novo na frente de todo mundo. E perguntar direto mostra que você se importa mais com ela do que com a piada.'},
+];
+
+const B2=[
+ {ctx:'Você contou para outras pessoas um segredo que sua amiga pediu para guardar. Ela descobriu.',
+  falas:[{q:'Amiga',t:'Você contou pra todo mundo. Eu te pedi pra não contar.',o:'Voz baixa, não estava gritando'}],
+  ops:['"Foi mal, mas também não era nada tão secreto assim"','"Eu sou a pior amiga do mundo, você devia me odiar"','"Você tem razão. Você me pediu e eu contei. Me desculpa de verdade."'],
+  c:2, fb:'Conserto bom reconhece o fato sem diminuir ("não era tão secreto") e sem virar drama sobre você ("sou a pior"). Quando a gente exagera a própria culpa, a outra pessoa acaba tendo que consolar quem errou.'},
+ {ctx:'Você chegou atrasada no cinema pela terceira vez e sua prima perdeu o começo do filme.',
+  falas:[{q:'Prima',t:'Tudo bem, já acostumei.',o:'Não olhou para você ao dizer isso'}],
+  ops:['"Ainda bem que você entende!"','"O ônibus demorou, não foi culpa minha"','"Não tá tudo bem, né? É a terceira vez. Me desculpa, vou me organizar melhor."'],
+  c:2, fb:'O "já acostumei" é mágoa, não perdão. Reconhecer isso em voz alta vale mais que qualquer explicação. E repare: justificar com o ônibus não repara nada, só transfere a culpa.'},
+ {ctx:'Você esqueceu de chamar uma amiga para um passeio do grupo. Ela viu as fotos depois.',
+  falas:[{q:'Amiga',t:'Vi que vocês foram no parque. Legal!',o:'Comentou de madrugada'}],
+  ops:['"Foi em cima da hora, a gente nem planejou"','"A gente esqueceu de te chamar e isso foi ruim. Desculpa. Na próxima eu te chamo primeiro."','"Ah, você também não tinha avisado que queria ir"'],
+  c:1, fb:'A frase tem as três partes de um bom conserto: reconhece o que houve, pede desculpas e diz o que vai ser diferente. A última opção devolve a culpa, que é o oposto de consertar.'},
+];
+
+const B3=[
+ {ctx:'Sua amiga mandou mensagem às 23h: "briguei feio com minha mãe hoje, tô mal".',
+  falas:[{q:'Amiga',t:'briguei feio com minha mãe hoje, tô mal'}],
+  ops:['"Você tentou conversar com ela com calma? Às vezes funciona"','"Que ruim, amiga. Quer falar sobre isso? Tô aqui."','"Relaxa, mãe e filha brigam, amanhã passa"'],
+  c:1, fb:'Ela não pediu solução, pediu companhia. Conselho rápido e "amanhã passa" encerram o assunto antes de ela conseguir desabafar. Ouvir primeiro, resolver depois (se ela quiser).'},
+ {ctx:'Sua colega de grupo não entregou a parte dela de novo e o trabalho é amanhã.',
+  falas:[{q:'Colega',t:'Ai, esqueci. Você consegue fazer essa parte?'}],
+  ops:['"Tudo bem, eu faço"','"Você é muito irresponsável, nunca faz nada"','"Não dá pra eu fazer sozinha de novo. Faz a sua parte hoje à noite que eu junto amanhã cedo."'],
+  c:2, fb:'Isso é ser assertiva: dizer não ao que não é justo, sem xingar e sem engolir. Repare que a frase propõe uma solução concreta em vez de só reclamar.'},
+ {ctx:'Seu irmão quebrou seu fone e já pediu desculpas três vezes. Você ainda está chateada.',
+  falas:[{q:'Irmão',t:'Já pedi desculpa, pô. Para de ficar com cara feia.'}],
+  ops:['"Tá tudo bem, esquece"','"Eu sei que você pediu, e eu aceito. Só ainda tô chateada, preciso de um tempo pra passar."','"Nunca mais te empresto nada na vida"'],
+  c:1, fb:'Aceitar o pedido de desculpas e ainda assim estar chateada é possível! Dizer isso em voz alta evita que ele leia sua cara fechada como briga nova.'},
+ {ctx:'Uma menina da sala está sentada sozinha no recreio há três dias seguidos.',
+  falas:[{q:'Você percebeu',t:'Ela não olha para ninguém e fica mexendo no celular',o:'Pode ser timidez, pode ser que ela prefira ficar só'}],
+  ops:['Ir até ela e sentar junto sem perguntar nada','Falar para a turma toda chamar ela','"Oi, posso sentar aqui? Se você quiser ficar sozinha, tudo bem também."'],
+  c:2, fb:'Essa frase oferece companhia e ao mesmo tempo respeita a vontade dela. Nem toda pessoa sozinha está triste, e nem toda ajuda precisa ser decidida por nós.'},
+];
+
+const B4=[
+ {ctx:'Sua melhor amiga postou uma foto com outra pessoa escrito "minha melhor amiga". Você viu e ficou mal. Ela te mandou mensagem normal no dia seguinte, como se nada tivesse acontecido.',
+  dica:'Você vai perguntar, consertar ou deixar quieto? Escreva a frase exata.'},
+ {ctx:'Você percebeu durante a aula que sua colega ficou vermelha e calada depois que o professor corrigiu ela na frente de todos.',
+  dica:'O que você diria no intervalo? Lembre: nem tudo precisa de conselho.'},
+ {ctx:'Você mandou uma mensagem com raiva para alguém e se arrependeu dez minutos depois.',
+  dica:'Escreva a mensagem de conserto. Reconheça sem se humilhar.'},
+ {ctx:'Sua mãe falou "faz o que você quiser" com a voz baixa depois que você disse que ia dormir na casa de uma amiga.',
+  dica:'Qual pergunta de checagem você faria?'},
+];
+
+function render(){
+  // B1, B2, B3 com alternativas
+  [['bloco1',B1],['bloco2',B2],['bloco3',B3]].forEach(([id,dados])=>{
+    const el=document.getElementById(id);
+    el.innerHTML=dados.map((d,i)=>{
+      const sh=d.ops.map((o,j)=>({t:o,orig:j})).sort(()=>Math.random()-.5);
+      const nc=sh.findIndex(o=>o.orig===d.c);
+      const falas=d.falas.map(f=>`
+        <div style="display:flex;flex-direction:column;gap:3px;${f.m?'align-items:flex-end':''}">
+          <div class="quem">${esc(f.q)}</div>
+          ${f.t?`<div class="fala ${f.m?'minha':''}">${esc(f.t)}</div>`:''}
+          ${f.o?`<div class="obs">${esc(f.o)}</div>`:''}
+        </div>`).join('');
+      return `
+      <div class="cena">
+        <div class="cena-hdr"><strong>Cena ${i+1}:</strong> ${esc(d.ctx)}</div>
+        <div class="cena-body">${falas}</div>
+      </div>
+      <div class="analysis">
+        <div class="pergunta-box">O que você faria?</div>
+        <div class="opcoes" id="${id}-o${i}">
+          ${sh.map((o,j)=>`<button class="opcao" onclick="resp('${id}',${i},${j},${nc},this)"><span class="opc-ltr">${['A','B','C'][j]}</span>${esc(o.t)}</button>`).join('')}
+        </div>
+        <div class="fb" id="${id}-f${i}"></div>
+        <div class="nota-label">Por que essa resposta funciona melhor?</div>
+        <textarea class="nota" placeholder="Escreva com suas palavras..."></textarea>
+      </div>`;
+    }).join('');
+  });
+  // B4 aberto
+  document.getElementById('bloco4').innerHTML=B4.map((d,i)=>`
+    <div class="cena">
+      <div class="cena-hdr"><strong>Cena ${i+1}:</strong> ${esc(d.ctx)}</div>
+    </div>
+    <div class="analysis">
+      <div class="pergunta-box">${esc(d.dica)}</div>
+      <textarea class="nota" placeholder="Escreva aqui o que você diria..."></textarea>
+      <div class="nota-label">Com qual tom de voz você falaria isso?</div>
+      <textarea class="nota" placeholder="Ex: calma, baixa, sem pressa..."></textarea>
+    </div>`).join('');
+}
+const FBS={bloco1:B1,bloco2:B2,bloco3:B3};
+function resp(id,i,chosen,correct,btn){
+  const box=document.getElementById(id+'-o'+i);
+  if(box.dataset.done)return;
+  box.dataset.done='1';
+  const btns=box.querySelectorAll('.opcao');
+  btns.forEach(b=>b.disabled=true);
+  btns[correct].classList.add(chosen===correct?'correta':'revelada');
+  const fb=document.getElementById(id+'-f'+i);
+  if(chosen===correct){ addScore(10); fb.className='fb show fb-c'; fb.textContent='Isso mesmo! '+FBS[id][i].fb; }
+  else { btn.classList.add('errada'); fb.className='fb show fb-w'; fb.textContent='Quase! A resposta destacada funciona melhor. '+FBS[id][i].fb; }
+}
+let secs=0,running=false,interval=null;
+function pad(n){return String(n).padStart(2,'0')}
+function updateT(){document.getElementById('timerVal').textContent=pad(Math.floor(secs/60))+':'+pad(secs%60)}
+function toggleTimer(){
+  const b=document.getElementById('timerBtn');
+  if(running){clearInterval(interval);running=false;b.textContent='Iniciar';}
+  else{running=true;b.textContent='Pausar';interval=setInterval(()=>{secs++;updateT();},1000);}
+}
+function resetTimer(){clearInterval(interval);running=false;secs=0;updateT();document.getElementById('timerBtn').textContent='Iniciar';}
+render();
+</script>
+</body>
+</html>
